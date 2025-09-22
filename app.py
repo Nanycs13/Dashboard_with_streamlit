@@ -15,80 +15,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Função para carregar dados com fallback para dados de exemplo
+
 @st.cache_data
 def load_data():
-    try:
-        # Tentar carregar dados do CSV
-        if os.path.exists("lung_cancer_dataset.csv"):
-            df = pd.read_csv("lung_cancer_dataset.csv")
-            st.success("✅ Dados carregados com sucesso!")
-        else:
-            # Gerar dados de exemplo se o arquivo não existir
-            st.warning("📊 Arquivo 'lung_cancer_dataset.csv' não encontrado. Gerando dados de exemplo...")
-            np.random.seed(42)
-            n_samples = 500
-            
-            data = {
-                'patient_id': range(100000, 100000 + n_samples),
-                'age': np.clip(np.random.normal(65, 12, n_samples).astype(int), 30, 95),
-                'gender': np.random.choice(['Male', 'Female'], n_samples, p=[0.55, 0.45]),
-                'pack_years': np.clip(np.random.exponential(15, n_samples), 0, 100),
-                'radon_exposure': np.random.choice(['Low', 'Medium', 'High'], n_samples, p=[0.6, 0.3, 0.1]),
-                'asbestos_exposure': np.random.choice(['Yes', 'No'], n_samples, p=[0.2, 0.8]),
-                'secondhand_smoke_exposure': np.random.choice(['Yes', 'No'], n_samples, p=[0.3, 0.7]),
-                'copd_diagnosis': np.random.choice(['Yes', 'No'], n_samples, p=[0.15, 0.85]),
-                'alcohol_consumption': np.random.choice(['None', 'Light', 'Moderate', 'Heavy'], n_samples, p=[0.3, 0.4, 0.2, 0.1]),
-                'family_history': np.random.choice(['Yes', 'No'], n_samples, p=[0.25, 0.75]),
-            }
-            
-            # Calcular probabilidade de câncer baseada nos fatores de risco
-            risk_factors = (
-                (data['age'] > 60).astype(int) * 0.3 +
-                (data['pack_years'] > 20).astype(int) * 0.4 +
-                (data['radon_exposure'] == 'High').astype(int) * 0.2 +
-                (data['asbestos_exposure'] == 'Yes').astype(int) * 0.3 +
-                (data['secondhand_smoke_exposure'] == 'Yes').astype(int) * 0.1 +
-                (data['copd_diagnosis'] == 'Yes').astype(int) * 0.3 +
-                (data['alcohol_consumption'] == 'Heavy').astype(int) * 0.1 +
-                (data['family_history'] == 'Yes').astype(int) * 0.2
-            )
-            
-            # Gerar diagnóstico de câncer baseado na probabilidade
-            cancer_prob = np.clip(risk_factors * 0.15, 0, 0.8)
-            data['lung_cancer'] = np.random.binomial(1, cancer_prob).astype(str)
-            data['lung_cancer'] = data['lung_cancer'].replace({'1': 'Yes', '0': 'No'})
-            
-            df = pd.DataFrame(data)
-            st.info(f"📋 Gerados {n_samples} registros de exemplo")
-    
-    except Exception as e:
-        st.error(f"❌ Erro ao carregar dados: {e}")
-        # Gerar dados mínimos de fallback
-        df = pd.DataFrame({
-            'patient_id': [100000, 100001],
-            'age': [69, 55],
-            'gender': ['Male', 'Female'],
-            'pack_years': [66.0, 12.5],
-            'radon_exposure': ['High', 'Low'],
-            'asbestos_exposure': ['No', 'Yes'],
-            'secondhand_smoke_exposure': ['No', 'Yes'],
-            'copd_diagnosis': ['Yes', 'No'],
-            'alcohol_consumption': ['Moderate', 'Light'],
-            'family_history': ['No', 'Yes'],
-            'lung_cancer': ['No', 'Yes']
-        })
-    
-    # Processar dados
+    df = pd.read_csv("lung_cancer_dataset.csv")
     df['age'] = pd.to_numeric(df['age'], errors='coerce').fillna(65)
     df['pack_years'] = pd.to_numeric(df['pack_years'], errors='coerce').fillna(0)
     
-    # Criar colunas derivadas para análise
+    
     age_bins = [0, 40, 60, 80, 100]
     age_labels = ['<40', '40-60', '60-80', '80+']
     df['age_group'] = pd.cut(df['age'], bins=age_bins, labels=age_labels, right=False)
     
-    # Calcular score de risco (versão simplificada)
+    
     df['risk_score'] = (
         df['pack_years'] / 20 + 
         (df['radon_exposure'] == 'High').astype(int) * 1.5 +
@@ -99,14 +38,14 @@ def load_data():
         (df['family_history'] == 'Yes').astype(int) * 1.0
     )
     
-    # Classificar risco
+    
     df['risk_category'] = pd.cut(df['risk_score'], 
                                 bins=[0, 2, 4, 10], 
                                 labels=['Baixo', 'Médio', 'Alto'])
     
     return df
 
-# CSS personalizado
+
 st.markdown("""
 <style>
     .main-header {
@@ -132,7 +71,7 @@ st.markdown("""
         font-size: 1.3rem;
     }
     .info-box {
-        background-color: #e8f4fd;
+        background-color: #FF2C2C2;
         padding: 1rem;
         border-radius: 10px;
         border-left: 4px solid #3498db;
@@ -141,12 +80,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Filtros globais na sidebar
+
 def create_sidebar_filters(df):
     st.sidebar.markdown("---")
     st.sidebar.header("🔍 Filtros Globais")
     
-    # Filtros principais
+    
     gender_filter = st.sidebar.multiselect(
         "Gênero",
         options=sorted(df['gender'].unique()),
@@ -174,7 +113,7 @@ def create_sidebar_filters(df):
         step=0.1
     )
     
-    # Filtros adicionais
+    
     st.sidebar.markdown("**Filtros Adicionais**")
     smoke_filter = st.sidebar.multiselect(
         "Exposição à Fumaça",
@@ -197,7 +136,7 @@ def create_sidebar_filters(df):
         'copd': copd_filter
     }
 
-# Aplicar filtros
+
 def apply_filters(df, filters):
     df_filtered = df.copy()
     
@@ -228,15 +167,6 @@ def apply_filters(df, filters):
 # Página inicial
 def render_homepage(df):
     st.markdown('<h1 class="main-header">🫁 Lung Cancer Analytics Dashboard</h1>', unsafe_allow_html=True)
-    
-    # Informações sobre os dados
-    with st.expander("ℹ️ Sobre os Dados", expanded=False):
-        st.markdown(f"""
-        <div class="info-box">
-        <strong>Dataset Info:</strong> {len(df)} pacientes | {df['lung_cancer'].value_counts().get('Yes', 0)} com câncer 
-        | Idade média: {df['age'].mean():.1f} anos
-        </div>
-        """, unsafe_allow_html=True)
     
     # Métricas principais
     col1, col2, col3, col4 = st.columns(4)
@@ -383,39 +313,6 @@ def render_analysis(df):
             st.error(f"Erro ao criar gráfico: {e}")
             st.info("Tente ajustar as configurações do gráfico")
     
-    # Análise de correlação
-    st.markdown("---")
-    st.markdown('<h3 class="section-header">Análise de Correlação</h3>', unsafe_allow_html=True)
-    
-    # Selecionar apenas colunas numéricas
-    numeric_df = df.select_dtypes(include=[np.number])
-    if not numeric_df.empty and len(numeric_df.columns) > 1:
-        corr_matrix = numeric_df.corr()
-        
-        fig = px.imshow(corr_matrix, 
-                       title='Matriz de Correlação entre Variáveis Numéricas',
-                       color_continuous_scale='RdBu_r',
-                       aspect='auto')
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Mostrar correlações mais fortes
-        st.markdown("**Correlações Significativas (|r| > 0.3):**")
-        strong_corrs = []
-        for i in range(len(corr_matrix.columns)):
-            for j in range(i+1, len(corr_matrix.columns)):
-                corr_val = corr_matrix.iloc[i, j]
-                if abs(corr_val) > 0.3:
-                    strong_corrs.append({
-                        'Variável 1': corr_matrix.columns[i],
-                        'Variável 2': corr_matrix.columns[j],
-                        'Correlação': f"{corr_val:.3f}"
-                    })
-        
-        if strong_corrs:
-            st.dataframe(pd.DataFrame(strong_corrs), use_container_width=True)
-        else:
-            st.info("Não foram encontradas correlações fortes entre as variáveis numéricas")
-
 # Página de relatórios
 def render_reports(df):
     st.markdown('<h1 class="main-header">📋 Relatórios e Dados</h1>', unsafe_allow_html=True)
