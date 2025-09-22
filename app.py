@@ -1,8 +1,11 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 
-st.set_page_config(page_title="Lung Cancer Risk Dashboard", layout="wide")
+st.set_page_config(
+    page_title="Lung Cancer Risk Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 @st.cache_data
 def load_data():
@@ -10,66 +13,94 @@ def load_data():
 
 df = load_data()
 
-st.sidebar.title("Filtros")
+st.sidebar.title("Filtros Globais")
 
-
-age_range = st.sidebar.slider("Idade", int(df["age"].min()), int(df["age"].max()), (int(df["age"].min()), int(df["age"].max())))
+age_range = st.sidebar.slider("Idade", int(df["age"].min()), int(df["age"].max()),
+                              (int(df["age"].min()), int(df["age"].max())))
 gender_filter = st.sidebar.multiselect("Gênero", df["gender"].unique(), default=df["gender"].unique())
-smoke_filter = st.sidebar.slider("Histórico de Tabagismo (Pack Years)", int(df["pack_years"].min()), int(df["pack_years"].max()), (int(df["pack_years"].min()), int(df["pack_years"].max())))
-family_history_filter = st.sidebar.multiselect("Histórico Familiar", df["family_history"].unique(), default=df["family_history"].unique())
-target_filter = st.sidebar.multiselect("Diagnóstico de Câncer de Pulmão", df["lung_cancer"].unique(), default=df["lung_cancer"].unique())
+family_history_filter = st.sidebar.multiselect("Histórico Familiar", df["family_history"].unique(),
+                                               default=df["family_history"].unique())
+cancer_filter = st.sidebar.multiselect("Diagnóstico de Câncer de Pulmão", df["lung_cancer"].unique(),
+                                       default=df["lung_cancer"].unique())
 
-
-filtered = df[
+filtered_df = df[
     (df["age"].between(age_range[0], age_range[1])) &
-    (df["pack_years"].between(smoke_filter[0], smoke_filter[1])) &
     (df["gender"].isin(gender_filter)) &
     (df["family_history"].isin(family_history_filter)) &
-    (df["lung_cancer"].isin(target_filter))
+    (df["lung_cancer"].isin(cancer_filter))
 ]
 
-st.title("Lung Cancer Risk Dashboard")
+# Salvar dataframe filtrado no estado global (para ser usado nas páginas)
+st.session_state["filtered_df"] = filtered_df
 
-menu = st.sidebar.radio("Navegação", ["Visão Geral", "Visualizações"])
-
-
-if menu == "Visão Geral":
-    st.subheader("Visão Geral dos Pacientes")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total de Pacientes", len(filtered))
-    col2.metric("Positivos", (filtered["lung_cancer"] == "YES").sum())
-    col3.metric("Negativos", (filtered["lung_cancer"] == "NO").sum())
-    st.dataframe(filtered.head(20))
+st.title("📊 Lung Cancer Risk Dashboard")
+st.markdown("Use o menu lateral para navegar entre as análises.")
 
 
-elif menu == "Visualizações":
-    st.subheader("Distribuição da Idade por Diagnóstico")
-    fig1 = px.histogram(filtered, x="age", nbins=30, color="lung_cancer", barmode="overlay", title="Distribuição da Idade (Lung Cancer)")
-    st.plotly_chart(fig1, use_container_width=True)
+# --- ESTILO CUSTOMIZADO ---
+st.markdown(
+    """
+    <style>
+    /* Fundo geral */
+    .stApp {
+        background-color: #f9f9f9;
+        color: #333333;
+        font-family: "Segoe UI", sans-serif;
+    }
 
-    st.subheader("Histórico de Tabagismo")
-    fig2 = px.histogram(filtered, x="pack_years", nbins=30, color="lung_cancer", barmode="overlay", title="Distribuição de Pack Years")
-    st.plotly_chart(fig2, use_container_width=True)
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #1e3d59;
+        color: white;
+    }
+    section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] label {
+        color: white !important;
+    }
 
-    st.subheader("Distribuição por Gênero")
-    gender_counts = filtered["gender"].value_counts().reset_index()
-    gender_counts.columns = ["Gênero", "Quantidade"]
-    fig3 = px.bar(gender_counts, x="Gênero", y="Quantidade", color="Gênero", title="Distribuição por Gênero")
-    st.plotly_chart(fig3, use_container_width=True)
+    /* Títulos principais */
+    h1, h2, h3 {
+        color: #1e3d59;
+        font-weight: 600;
+    }
 
-    with st.expander("Exposições Ambientais"):
-        exp_vars = ["radon_exposure", "asbestos_exposure", "secondhand_smoke_exposure"]
-        for var in exp_vars:
-            counts = filtered[var].value_counts().reset_index()
-            counts.columns = [var, "Quantidade"]
-            fig = px.bar(counts, x=var, y="Quantidade", color=var, title=f"Distribuição de {var.replace('_',' ').title()}")
-            st.plotly_chart(fig, use_container_width=True)
+    /* Métricas */
+    div[data-testid="stMetricValue"] {
+        color: #d9534f; /* destaque em vermelho suave */
+        font-size: 28px;
+        font-weight: bold;
+    }
+    div[data-testid="stMetricLabel"] {
+        color: #555;
+    }
 
-    with st.expander("Diagnóstico de Câncer de Pulmão"):
-        fig4 = px.pie(filtered, names="lung_cancer", title="Distribuição Lung Cancer")
-        st.plotly_chart(fig4, use_container_width=True)
+    /* Dataframe estilizado */
+    .dataframe {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+    }
 
-    with st.expander("Correlação entre Variáveis Numéricas"):
-        corr = filtered[["age","pack_years"]].corr()
-        fig5 = px.imshow(corr, text_auto=True, aspect="auto", title="Matriz de Correlação")
-        st.plotly_chart(fig5, use_container_width=True)
+    /* Expansores */
+    .streamlit-expanderHeader {
+        font-weight: bold;
+        color: #1e3d59;
+    }
+
+    /* Botões e seletores */
+    .stButton>button, .stDownloadButton>button {
+        background-color: #1e3d59;
+        color: white;
+        border-radius: 8px;
+        padding: 0.6em 1.2em;
+        border: none;
+        font-weight: 500;
+        transition: 0.3s;
+    }
+    .stButton>button:hover, .stDownloadButton>button:hover {
+        background-color: #145374;
+        transform: scale(1.02);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+# --- FIM ESTILO CUSTOMIZADO ---
