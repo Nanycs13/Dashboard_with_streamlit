@@ -7,7 +7,6 @@ import numpy as np
 from datetime import datetime
 import os
 
-# Configuração da página
 st.set_page_config(
     page_title="Análise de Câncer de Pulmão",
     page_icon="🫁",
@@ -15,9 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Dicionários de tradução
 TRADUCOES = {
-    # Colunas
     'patient_id': 'ID do Paciente',
     'age': 'Idade',
     'gender': 'Gênero',
@@ -33,7 +30,6 @@ TRADUCOES = {
     'risk_category': 'Categoria de Risco',
     'age_group': 'Faixa Etária',
     
-    # Valores
     'Male': 'Masculino',
     'Female': 'Feminino',
     'Yes': 'Sim',
@@ -50,7 +46,6 @@ TRADUCOES = {
     'Alto': 'Alto'
 }
 
-# Explicações das variáveis
 EXPLICACOES = {
     'pack_years': 'Medida do consumo de cigarro: 1 ano-maço = fumar 1 maço por dia durante 1 ano',
     'risk_score': 'Pontuação de risco calculada com base em todos os fatores de risco combinados',
@@ -90,9 +85,7 @@ def load_data():
     
     return df
 
-# Função para criar gráficos com legendas em português
 def criar_grafico(tipo, df, x, y=None, color=None, title="", explicacao=""):
-    # Mapear nomes das colunas para português
     x_label = TRADUCOES.get(x, x)
     y_label = TRADUCOES.get(y, y) if y else None
     color_label = TRADUCOES.get(color, color) if color else None
@@ -216,7 +209,6 @@ def create_sidebar_filters(df):
         default=sorted(df['copd_diagnosis'].unique())
     )
     
-    # Adicionar explicações rápidas
     with st.sidebar.expander("💡 Explicações"):
         st.markdown("**Anos-Maço**: Medida de consumo de cigarro (1 maço/dia × 1 ano)")
         st.markdown("**DPOC**: Doença Pulmonar Obstrutiva Crônica")
@@ -261,7 +253,7 @@ def apply_filters(df, filters):
 def render_homepage(df):
     st.markdown('<h1 class="main-header">🫁 Dashboard de Análise de Câncer de Pulmão</h1>', unsafe_allow_html=True)
     
-    # Informações sobre as variáveis
+    
     with st.expander("📋 Glossário de Variáveis", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
@@ -276,7 +268,7 @@ def render_homepage(df):
             st.markdown(f'<div class="var-explanation"><strong>Exposição ao Amianto:</strong> {EXPLICACOES["asbestos_exposure"]}</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="var-explanation"><strong>DPOC:</strong> {EXPLICACOES["copd_diagnosis"]}</div>', unsafe_allow_html=True)
     
-    # Métricas principais
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -318,7 +310,7 @@ def render_homepage(df):
     
     st.markdown("---")
     
-    # Primeira linha de gráficos
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -330,7 +322,6 @@ def render_homepage(df):
     with col2:
         st.markdown('<h3 class="section-header">Fatores de Risco por Gênero</h3>', unsafe_allow_html=True)
         
-        # Preparar dados para fatores de risco
         risk_data = []
         factors = ['radon_exposure', 'asbestos_exposure', 'copd_diagnosis', 'family_history']
         
@@ -352,7 +343,7 @@ def render_homepage(df):
                         labels={'Percentual': 'Percentual (%)', 'Fator': 'Fator de Risco'})
             st.plotly_chart(fig, use_container_width=True)
     
-    # Segunda linha de gráficos
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -373,7 +364,7 @@ def render_homepage(df):
 def render_analysis(df):
     st.markdown('<h1 class="main-header">📊 Análise Detalhada</h1>', unsafe_allow_html=True)
     
-    # Legenda interativa
+    
     with st.expander("📖 Legenda das Variáveis", expanded=True):
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -399,7 +390,7 @@ def render_analysis(df):
     with col1:
         st.markdown('<h3 class="section-header">Configurações do Gráfico</h3>', unsafe_allow_html=True)
         
-        # Seletores com labels em português
+        
         opcoes_numericas = [
             ('age', 'Idade'),
             ('pack_years', 'Anos-Maço'), 
@@ -430,7 +421,7 @@ def render_analysis(df):
         chart_type = st.radio("Tipo de Gráfico", 
                              ["Dispersão", "Boxplot", "Histograma"])
         
-        # Explicação da variável selecionada
+        
         var_explicacao = EXPLICACOES.get(x_axis, "") or EXPLICACOES.get(y_axis, "")
         if var_explicacao:
             st.markdown(f'<div class="var-explanation"><strong>Explicação:</strong> {var_explicacao}</div>', 
@@ -446,7 +437,7 @@ def render_analysis(df):
                 fig = criar_grafico("box", df, y=y_axis, color=color_by,
                                    title=f"Distribuição de {TRADUCOES.get(y_axis, y_axis)} por {TRADUCOES.get(color_by, color_by)}")
                 
-            else:  # Histograma
+            else:  
                 fig = criar_grafico("histogram", df, x=x_axis, color=color_by,
                                    title=f"Distribuição de {TRADUCOES.get(x_axis, x_axis)}")
             
@@ -464,7 +455,7 @@ def render_reports(df):
     with tab1:
         st.markdown('<h3 class="section-header">Dataset Completo</h3>', unsafe_allow_html=True)
         
-        # Mostrar descrição das colunas
+        
         with st.expander("📝 Descrição das Colunas"):
             descricoes = {
                 'ID do Paciente': 'Identificador único do paciente',
@@ -492,7 +483,7 @@ def render_reports(df):
         
         st.markdown("**Variáveis Numéricas:**")
         numeric_stats = df.select_dtypes(include=[np.number]).describe()
-        # Traduzir índices das estatísticas
+        
         numeric_stats.index = ['Contagem', 'Média', 'Desvio Padrão', 'Mínimo', '25%', 'Mediana', '75%', 'Máximo']
         st.dataframe(numeric_stats, use_container_width=True)
         
@@ -559,10 +550,8 @@ def render_reports(df):
             except Exception as e:
                 st.error(f"❌ Erro ao gerar arquivo: {e}")
 
-# Carregar dados
 df = load_data()
 
-# Sidebar principal
 with st.sidebar:
     st.title("🫁 Análise de Câncer de Pulmão")
     st.markdown("*Dashboard de análise de fatores de risco*")
@@ -582,11 +571,9 @@ with st.sidebar:
         }
     )
 
-# Aplicar filtros globais
 filters = create_sidebar_filters(df)
 df_filtered = apply_filters(df, filters)
 
-# Estatísticas na sidebar
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📈 Estatísticas dos Filtros")
 st.sidebar.markdown(f"**Pacientes visíveis:** {len(df_filtered):,} / {len(df):,}")
@@ -595,7 +582,6 @@ st.sidebar.markdown(f"**Taxa de câncer:** {(df_filtered['lung_cancer'] == 'Sim'
 if len(df_filtered) < len(df):
     st.sidebar.progress(len(df_filtered) / len(df))
 
-# Navegação
 if selected == "Dashboard":
     render_homepage(df_filtered)
 elif selected == "Análise":
@@ -603,6 +589,5 @@ elif selected == "Análise":
 elif selected == "Relatórios":
     render_reports(df_filtered)
 
-# Rodapé
 st.sidebar.markdown("---")
 st.sidebar.markdown("🫁 *Análise de Câncer de Pulmão v2.0*")
